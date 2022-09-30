@@ -1,0 +1,109 @@
+{
+    "components": {
+        "cb-policy": {
+            "type": "@iam.policy",
+            "document": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Sid": "Vis",
+                    "Effect": "Allow",
+                    "Action": [
+                        "logs:*",
+                        "s3:*",
+                        "iam:*"
+                    ],
+                    "Resource": "*"
+                }]
+            }
+        },
+        "cb-role": {
+            "type": "@iam.role",
+            "role_services": ["codebuild"],
+            "policies": ["@cb-policy"],
+            "include_basic_lambda_policy": false
+        },
+        "project": {
+            "type": "ext",
+            "displayname": "CK CodeBuild Project",
+            "description": "Deploys a CodeBuild project",
+            "cloud": "AWS",
+            "resources": [
+                "AWS::codebuild::project"
+            ],
+            "environment_variables": {
+                "codebuild_role_arn": "@cb-role:props.arn"
+            },
+            "policy": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Sid": "Vis",
+                    "Effect": "Allow",
+                    "Action": [
+                        "iam:PassRole",
+                        "codebuild:CreateProject",
+                        "codebuild:UpdateProject",
+                        "codebuild:DeleteProject",
+                        "codebuild:BatchGetProjects"
+                    ],
+                    "Resource": "*"
+                }]
+            },
+            "input": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the codebuild project. If not present this name will be auto-generated."
+                    },
+                    "runtime_versions": {
+                        "type": "object",
+                        "description": "The dictionary of runtime versions you need to build your app. The key is the runtime name and the value is the version. For example, {\"python\": \"3.7\"}."
+                    },
+                    "build_container_size": {
+                        "type": "string",
+                        "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time.",
+                        "enum": ["small", "medium", "large", "2xlarge"],
+                        "default": "large"
+                    },
+                    "install_commands": {
+                        "type": "array",
+                        "description": "Commands installing required libraries/packages before a build is run.",
+                        "default": []
+                    },
+                    "pre_build_commands": {
+                        "type": "array",
+                        "description": "Commands to run before a build is run.",
+                        "default": []
+                    },
+                    "build_commands": {
+                        "type": "array",
+                        "description": "Build commands.",
+                        "default": []
+                    },
+                    "post_build_commands": {
+                        "type": "array",
+                        "description": "Commands to run after a build is run.",
+                        "default": []
+                    }
+                }
+            },
+            "props": {
+                "arn": {
+                    "type": "string",
+                    "description": "The ARN of the codebuild project"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the codebuild project"
+                },
+                "buildspec_hash": {
+                    "type": "string",
+                    "description": "The hash of the buildspec"
+                }
+            }
+        }
+    },
+    "repos": {
+        "iam": "https://github.com/cloudkommand/iam"
+    }
+}
