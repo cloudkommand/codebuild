@@ -55,6 +55,14 @@
                         "type": "string",
                         "description": "The name of the codebuild project. If not present this name will be auto-generated."
                     },
+                    "s3_bucket": {
+                        "type": "string",
+                        "description": "The name of the S3 bucket where the source code is stored."
+                    },
+                    "s3_object": {
+                        "type": "string",
+                        "description": "The name of the S3 object where the source code is stored."
+                    },
                     "build_container_size": {
                         "type": "string",
                         "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time.",
@@ -141,7 +149,7 @@
                         "default": {}
                     }
                 },
-                "required": ["artifacts"]
+                "required": ["artifacts", "s3_bucket", "s3_object"]
             },
             "props": {
                 "arn": {
