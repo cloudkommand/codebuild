@@ -27,8 +27,6 @@ def lambda_handler(event, context):
         account_number = account_context(context)['number']
         region = account_context(context)['region']
         eh.capture_event(event)
-        bucket = event.get("bucket")
-        object_name = event.get("s3_object_name")
 
         prev_state = event.get("prev_state") or {}
         project_code = event.get("project_code")
@@ -55,7 +53,7 @@ def lambda_handler(event, context):
 
         artifacts = cdef.get("artifacts")
 
-        container_image = cdef.get("container_image") or "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+        container_image = cdef.get("container_image") or "aws/codebuild/standard:5.0"
     
         if event.get("pass_back_data"):
             print(f"pass_back_data found")

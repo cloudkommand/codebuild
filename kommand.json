@@ -55,15 +55,65 @@
                         "type": "string",
                         "description": "The name of the codebuild project. If not present this name will be auto-generated."
                     },
-                    "runtime_versions": {
-                        "type": "object",
-                        "description": "The dictionary of runtime versions you need to build your app. The key is the runtime name and the value is the version. For example, {\"python\": \"3.7\"}."
-                    },
                     "build_container_size": {
                         "type": "string",
                         "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time.",
                         "enum": ["small", "medium", "large", "2xlarge"],
                         "default": "large"
+                    },
+                    "container_image": {
+                        "type": "string",
+                        "description": "The docker image to use for the build container.",
+                        "default": "aws/codebuild/standard:5.0"
+                    },
+                    "artifacts": {
+                        "type": "object",
+                        "description": "The artifacts to be produced by the build.",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "description": "The type of artifacts to be produced by the build.",
+                                "enum": ["CODEPIPELINE", "NO_ARTIFACTS", "S3"]
+                            },
+                            "location": {
+                                "type": "string",
+                                "description": "The output bucket name, if the type is S3."
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "The S3 object prefix, if the type is S3."
+                            },
+                            "namespace_type": {
+                                "type": "string",
+                                "description": "If set to build ID, '/<Build ID>' will be appended to the S3 object prefix. If set to none, no prefix will be appended.",
+                                "enum": ["NONE", "BUILD_ID"],
+                                "default": "NONE"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "The filename of the artifact. If set to '/' the artifact(s) will be stored in the root of the bucket."
+                            },
+                            "packaging": {
+                                "type": "string",
+                                "description": "The type of artifact packaging to use. If set to NONE, no packaging will be performed.",
+                                "enum": ["NONE", "ZIP"],
+                                "default": "NONE"
+                            },
+                            "encryptionDisabled": {
+                                "type": "boolean",
+                                "description": "If set to true, the output artifacts will not be encrypted.",
+                                "default": false
+                            }
+                        },
+                        "required": ["type"]
+                    },
+                    "environment_variables": {
+                        "type": "object",
+                        "description": "Key-value pairs of environment variables to set in the codebuild project."
+                    },
+                    "runtime_versions": {
+                        "type": "object",
+                        "description": "The dictionary of runtime versions you need to build your app. The key is the runtime name and the value is the version. For example, {\"python\": \"3.7\"}."
                     },
                     "install_commands": {
                         "type": "array",
@@ -84,8 +134,14 @@
                         "type": "array",
                         "description": "Commands to run after a build is run.",
                         "default": []
+                    },
+                    "buildspec_artifacts": {
+                        "type": "object",
+                        "description": "The artifacts to be built by the codebuild project.",
+                        "default": {}
                     }
-                }
+                },
+                "required": ["artifacts"]
             },
             "props": {
                 "arn": {
