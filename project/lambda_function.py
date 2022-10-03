@@ -166,7 +166,7 @@ def lambda_handler(event, context):
 
 @ext(handler=eh, op="compare_defs")
 def compare_defs(event):
-    old_rendef = event.get("prev_state", {}).get("rendef")
+    old_rendef = event.get("prev_state", {}).get("rendef", {})
     new_rendef = event.get("component_def")
 
     _ = old_rendef.pop("trust_level", None)
