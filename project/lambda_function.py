@@ -51,6 +51,8 @@ def lambda_handler(event, context):
         post_build_commands = cdef.get("post_build_commands") or None
         buildspec_artifacts = cdef.get("buildspec_artifacts") or None
 
+        privileged_mode = cdef.get("privileged_mode") or False
+
         artifacts = cdef.get("artifacts")
 
         container_image = cdef.get("container_image") or "aws/codebuild/standard:5.0"
@@ -138,7 +140,8 @@ def lambda_handler(event, context):
                 "type": "LINUX_CONTAINER",
                 "image": container_image,
                 "computeType": build_container_size,
-                "imagePullCredentialsType": "CODEBUILD"
+                "imagePullCredentialsType": "CODEBUILD",
+                "privilegedMode": privileged_mode
             },
             "serviceRole": role_arn
         }
