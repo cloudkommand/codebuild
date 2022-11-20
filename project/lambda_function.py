@@ -53,7 +53,7 @@ def lambda_handler(event, context):
 
         privileged_mode = cdef.get("privileged_mode") or False
 
-        artifacts = cdef.get("artifacts")
+        artifacts = cdef.get("artifacts") or None
 
         container_image = cdef.get("container_image") or "aws/codebuild/standard:5.0"
     
@@ -125,13 +125,13 @@ def lambda_handler(event, context):
                             "commands": post_build_commands
                         }) or None
                     }), 
-                    "artifacts": buildspec_artifacts
+                    "artifacts": buildspec_artifacts or None
                 }), sort_keys=True)
             }
         else:
             source = cdef.get("source")
 
-        codebuild_spec = {
+        codebuild_spec = remove_none_attributes({
             "name": name,
             "description": description,
             "source": source,
@@ -144,7 +144,7 @@ def lambda_handler(event, context):
                 "privilegedMode": privileged_mode
             },
             "serviceRole": role_arn
-        }
+        })
         print(f"params = {codebuild_spec}")
 
         codebuild_spec_hash = hashlib.md5(json.dumps(codebuild_spec, sort_keys=True).encode("utf-8")).hexdigest()
