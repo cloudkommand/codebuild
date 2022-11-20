@@ -53,10 +53,7 @@ def lambda_handler(event, context):
 
         privileged_mode = cdef.get("privileged_mode") or False
 
-        artifacts = cdef.get("artifacts")
-        if not artifacts or not isinstance(artifacts, dict):
-            eh.add_log("artifacts is Required; Exiting", cdef, is_error=True)
-            eh.perm_error("artifacts is Required", 0)
+        artifacts = cdef.get("artifacts") or {"type": "NO_ARTIFACTS"}
 
         container_image = cdef.get("container_image") or "aws/codebuild/standard:5.0"
     
