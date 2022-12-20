@@ -10,6 +10,7 @@
                     "Action": [
                         "logs:*",
                         "s3:*",
+                        "ecr:*",
                         "iam:*"
                     ],
                     "Resource": "*"
@@ -118,6 +119,10 @@
                     "environment_variables": {
                         "type": "object",
                         "description": "Key-value pairs of environment variables to set in the codebuild project."
+                    },
+                    "privileged_mode": {
+                        "type": "boolean",
+                        "description": "If set to true, the codebuild project will run in privileged mode."
                     },
                     "runtime_versions": {
                         "type": "object",
