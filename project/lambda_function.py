@@ -55,8 +55,12 @@ def lambda_handler(event, context):
 
         artifacts = cdef.get("artifacts") or {"type": "NO_ARTIFACTS"}
 
-        container_image = cdef.get("container_image") or "aws/codebuild/standard:5.0"
-    
+        container_image = cdef.get("container_image") or get_container_image(runtime_versions)
+        if not container_image:
+            eh.add_log("No container image found", {"runtime_versions": runtime_versions}, is_error=True)
+            eh.perm_error("No container image found", 0)
+            return eh.finish()
+
         if event.get("pass_back_data"):
             print(f"pass_back_data found")
         elif event.get("op") == "upsert":
@@ -148,6 +152,13 @@ def lambda_handler(event, context):
         print(f"params = {codebuild_spec}")
 
         codebuild_spec_hash = hashlib.md5(json.dumps(codebuild_spec, sort_keys=True).encode("utf-8")).hexdigest()
+
+        if artifacts and artifacts.get("packaging") == "ZIP":
+           eh.add_props({
+              "zip_artifact_bucket": artifacts.get("location"),
+              "zip_artifact_key": f'{artifacts.get("path")}/{artifacts.get("name")}' if \
+                  artifacts.get("path") else artifacts.get("name")
+           })
 
         eh.add_props({
             "buildspec_hash": codebuild_spec_hash
@@ -276,137 +287,126 @@ def gen_codebuild_arn(codebuild_project_name, region, account_number):
 def gen_codebuild_link(codebuild_project_name):
     return f"https://console.aws.amazon.com/codesuite/codebuild/projects/{codebuild_project_name}"
 
+def get_container_image(runtime_versions):
+    """Returns the container image for the given runtime versions.
 
-"""
-aws/codebuild/amazonlinux2-x86_64-standard:3.0	
-AMAZON LINUX 2 AVAILABILITY:
-version: 0.1
+    Runtime versions is a dict of runtime name to version. For example:
+    {
+        "dotnet": 3.1,
+        "nodejs": 12,
+        }
+    """
+    processed_runtime_versions = [f"{k}{v}" for k, v in runtime_versions.items()]
 
-runtimes:
-  android:
-    versions:
-      28:
-        requires:
-          java: ["corretto8"]
-        commands:
-          - echo "Installing Android version 28 ..."
-      29:
-        requires:
-          java: ["corretto8"]
-        commands:
-          - echo "Installing Android version 29 ..."
-  java:
-    versions:
-      corretto11:
-        commands:
-          - echo "Installing corretto(OpenJDK) version 11 ..."
+    for image, runtimes in IMAGE_TO_RUNTIME_MAPPING.items():
+        if set(processed_runtime_versions).issubset(runtimes):
+            return image
 
-          - export JAVA_HOME="$JAVA_11_HOME"
-
-          - export JRE_HOME="$JRE_11_HOME"
-
-          - export JDK_HOME="$JDK_11_HOME"
-
-          - |-
-            for tool_path in "$JAVA_HOME"/bin/*;
-             do tool=`basename "$tool_path"`;
-              if [ $tool != 'java-rmi.cgi' ];
-              then
-               rm -f /usr/bin/$tool /var/lib/alternatives/$tool \
-                && update-alternatives --install /usr/bin/$tool $tool $tool_path 20000;
-              fi;
-            done
-      corretto8:
-        commands:
-          - echo "Installing corretto(OpenJDK) version 8 ..."
-
-          - export JAVA_HOME="$JAVA_8_HOME"
-
-          - export JRE_HOME="$JRE_8_HOME"
-
-          - export JDK_HOME="$JDK_8_HOME"
-
-          - |-
-            for tool_path in "$JAVA_8_HOME"/bin/* "$JRE_8_HOME"/bin/*;
-             do tool=`basename "$tool_path"`;
-              if [ $tool != 'java-rmi.cgi' ];
-              then
-               rm -f /usr/bin/$tool /var/lib/alternatives/$tool \
-                && update-alternatives --install /usr/bin/$tool $tool $tool_path 20000;
-              fi;
-            done
-  golang:
-    versions:
-      1.12:
-        commands:
-          - echo "Installing Go version 1.12 ..."
-          - goenv global  $GOLANG_12_VERSION
-      1.13:
-        commands:
-          - echo "Installing Go version 1.13 ..."
-          - goenv global  $GOLANG_13_VERSION
-      1.14:
-        commands:
-          - echo "Installing Go version 1.14 ..."
-          - goenv global  $GOLANG_14_VERSION
-  python:
-    versions:
-      3.9:
-        commands:
-          - echo "Installing Python version 3.9 ..."
-          - pyenv global  $PYTHON_39_VERSION
-      3.8:
-        commands:
-          - echo "Installing Python version 3.8 ..."
-          - pyenv global  $PYTHON_38_VERSION
-      3.7:
-        commands:
-          - echo "Installing Python version 3.7 ..."
-          - pyenv global  $PYTHON_37_VERSION
-  php:
-    versions:
-      7.4:
-        commands:
-          - echo "Installing PHP version 7.4 ..."
-          - phpenv global $PHP_74_VERSION
-      7.3:
-        commands:
-          - echo "Installing PHP version 7.3 ..."
-          - phpenv global $PHP_73_VERSION
-  ruby:
-    versions:
-      2.6:
-        commands:
-          - echo "Installing Ruby version 2.6 ..."
-          - rbenv global $RUBY_26_VERSION
-      2.7:
-        commands:
-          - echo "Installing Ruby version 2.7 ..."
-          - rbenv global $RUBY_27_VERSION
-  nodejs:
-    versions:
-      10:
-        commands:
-          - echo "Installing Node.js version 10 ..."
-          - n $NODE_10_VERSION
-      12:
-        commands:
-          - echo "Installing Node.js version 12 ..."
-          - n $NODE_12_VERSION
-  docker:
-    versions:
-      18:
-        commands:
-          - echo "Using Docker 19"
-      19:
-        commands:
-          - echo "Using Docker 19"
-  dotnet:
-    versions:
-      3.1:
-        commands:
-          - echo "Installing .NET version 3.1 ..."
-"""
-
-    
-
+  
+# Can be scraped from https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html
+IMAGE_TO_RUNTIME_MAPPING = {
+    "aws/codebuild/amazonlinux2-x86_64-standard:3.0": [
+        "android28",
+        "android29",
+        "dotnet3.1",
+        "golang1.12",
+        "golang1.13",
+        "golang1.14",
+        "javacorretto8",
+        "javacorretto11",
+        "nodejs10",
+        "nodejs12",
+        "php7.3",
+        "php7.4",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "ruby2.6",
+        "ruby2.7",
+    ],
+    "aws/codebuild/amazonlinux2-x86_64-standard:4.0": [
+        "dotnet6.0",
+        "golang1.18",
+        "javacorretto17",
+        "nodejs16",
+        "php8.1",
+        "python3.9",
+        "ruby3.1",
+    ],
+    "aws/codebuild/amazonlinux2-aarch64-standard:1.0": [
+        "golang1.12",
+        "golang1.13",
+        "javacorretto8",
+        "javacorretto11",
+        "nodejs8",
+        "nodejs10",
+        "nodejs12",
+        "php7.3",
+        "python3.7",
+        "python3.8",
+        "ruby2.6",
+    ],
+    "aws/codebuild/amazonlinux2-x86_64-standard:2.0": [
+        "dotnet3.1",
+        "golang1.12",
+        "golang1.13",
+        "golang1.14",
+        "javacorretto8",
+        "javacorretto11",
+        "nodejs10",
+        "nodejs12",
+        "php7.3",
+        "php7.4",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "ruby2.6",
+        "ruby2.7",
+    ],
+    "aws/codebuild/standard:4.0": [
+        "android28",
+        "android29",
+        "dotnet3.1",
+        "golang1.12",
+        "golang1.13",
+        "golang1.14",
+        "javacorretto8",
+        "javacorretto11",
+        "nodejs10",
+        "nodejs12",
+        "php7.3",
+        "php7.4",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "ruby2.6",
+        "ruby2.7",
+    ],
+    "aws/codebuild/standard:5.0": [
+        "dotnet3.1",
+        "dotnet5.0",
+        "golang1.15",
+        "golang1.16",
+        "javacorretto8",
+        "javacorretto11",
+        "nodejs12",
+        "nodejs14",
+        "php7.3",
+        "php7.4",
+        "php8.0",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "ruby2.6",
+        "ruby2.7",
+    ],
+    "aws/codebuild/standard:6.0": [
+        "dotnet6.0",
+        "golang1.18",
+        "javacorretto17",
+        "nodejs16",
+        "php8.1",
+        "python3.10",
+        "ruby3.1",
+    ],
+}
