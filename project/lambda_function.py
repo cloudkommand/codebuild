@@ -55,7 +55,7 @@ def lambda_handler(event, context):
 
         artifacts = cdef.get("artifacts") or {"type": "NO_ARTIFACTS"}
 
-        container_image = cdef.get("container_image") or get_container_image(runtime_versions)
+        container_image = cdef.get("container_image") or get_container_image(runtime_versions or {})
         if not container_image:
             eh.add_log("No container image found", {"runtime_versions": runtime_versions}, is_error=True)
             eh.perm_error("No container image found", 0)
