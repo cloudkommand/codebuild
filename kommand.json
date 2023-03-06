@@ -8,10 +8,28 @@
                     "Sid": "Vis",
                     "Effect": "Allow",
                     "Action": [
-                        "logs:*",
-                        "s3:*",
-                        "ecr:*",
-                        "iam:*"
+                        "logs:CreateLogGroup",
+                        "logs:CreateLogStream",
+                        "logs:PutLogEvents",
+                        "s3:ListBucket",
+                        "s3:GetBucketAcl",
+                        "s3:GetBucketLocation",
+                        "s3:PutObject",
+                        "s3:GetObjectVersion",
+                        "s3:GetObject",
+                        "codebuild:CreateReportGroup",
+                        "codebuild:CreateReport",
+                        "codebuild:UpdateReport",
+                        "codebuild:BatchPutTestCases",
+                        "codebuild:BatchPutCodeCoverages",
+                        "ecr:BatchImportUpstreamImage",
+                        "ecr:BatchCheckLayerAvailability",
+                        "ecr:CompleteLayerUpload",
+                        "ecr:DescribeImages",
+                        "ecr:GetAuthorizationToken",
+                        "ecr:InitiateLayerUpload",
+                        "ecr:PutImage",
+                        "ecr:UploadLayerPart"
                     ],
                     "Resource": "*"
                 }]
