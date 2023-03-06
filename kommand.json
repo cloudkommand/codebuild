@@ -58,13 +58,19 @@
                     "Sid": "Vis",
                     "Effect": "Allow",
                     "Action": [
-                        "iam:PassRole",
                         "codebuild:CreateProject",
                         "codebuild:UpdateProject",
                         "codebuild:DeleteProject",
                         "codebuild:BatchGetProjects"
                     ],
                     "Resource": "*"
+                }, {
+                    "Sid": "Role",
+                    "Effect": "Allow",
+                    "Action": [
+                        "iam:PassRole"
+                    ],
+                    "Resource": "@cb-role:props.arn"
                 }]
             },
             "input": {
