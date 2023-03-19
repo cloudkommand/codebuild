@@ -52,6 +52,7 @@
             "environment_variables": {
                 "codebuild_role_arn": "@cb-role:props.arn"
             },
+            "ck_plugin_tier": 3,
             "policy": {
                 "Version": "2012-10-17",
                 "Statement": [{
@@ -96,8 +97,7 @@
                     },
                     "container_image": {
                         "type": "string",
-                        "description": "The docker image to use for the build container.",
-                        "default": "aws/codebuild/standard:5.0"
+                        "description": "The docker image to use for the build container. This is set based on runtime_versions, but can be overridden here."
                     },
                     "artifacts": {
                         "type": "object",
@@ -118,7 +118,7 @@
                             },
                             "namespace_type": {
                                 "type": "string",
-                                "description": "If set to build ID, '/<Build ID>' will be appended to the S3 object prefix. If set to none, no prefix will be appended.",
+                                "description": "If set to build ID, '<Build ID>/' will be appended to the S3 object prefix. If set to none, no prefix will be appended.",
                                 "enum": ["NONE", "BUILD_ID"],
                                 "default": "NONE"
                             },
@@ -142,19 +142,23 @@
                     },
                     "environment_variables": {
                         "type": "object",
-                        "description": "Key-value pairs of environment variables to set in the codebuild project."
+                        "description": "Key-value pairs of environment variables to set in the codebuild project.",
+                        "common": true
                     },
                     "privileged_mode": {
                         "type": "boolean",
-                        "description": "If set to true, the codebuild project will run in privileged mode."
+                        "description": "If set to true, the codebuild project will run in privileged mode. Should only be set to true if you are building docker images.",
+                        "common": true
                     },
                     "runtime_versions": {
                         "type": "object",
-                        "description": "The dictionary of runtime versions you need to build your app. The key is the runtime name and the value is the version. For example, {\"python\": \"3.7\"}."
+                        "description": "The dictionary of runtime versions you need to build your app. The key is the runtime name and the value is the version. For example, {\"python\": \"3.7\"}.",
+                        "common": true
                     },
                     "install_commands": {
                         "type": "array",
                         "description": "Commands installing required libraries/packages before a build is run.",
+                        "common": true,
                         "default": []
                     },
                     "pre_build_commands": {
@@ -165,6 +169,7 @@
                     "build_commands": {
                         "type": "array",
                         "description": "Build commands.",
+                        "common": true,
                         "default": []
                     },
                     "post_build_commands": {
@@ -175,6 +180,7 @@
                     "buildspec_artifacts": {
                         "type": "object",
                         "description": "The artifacts to be built by the codebuild project.",
+                        "common": true,
                         "default": {}
                     }
                 },
@@ -193,7 +199,55 @@
                     "type": "string",
                     "description": "The hash of the buildspec"
                 }
-            }
+            },
+            "examples": [
+                {
+                    "displayname": "Build a Go Lambda Function",
+                    "notes": "This assumes the Lambda handler is main.go, but otherwise it is quite generic. This specific value for buildspec_artifacts copies all files. Could use references for s3_bucket and location inside artifacts.",
+                    "definition": {
+                        "type": "&codebuild.project",
+                        "s3_bucket": "source-bucket-name",
+                        "s3_object": "object-key",
+                        "runtime_versions": {"golang": 1.16},
+                        "build_commands": ["go build main.go"],
+                        "buildspec_artifacts": {"files": ["**/*"]},
+                        "artifacts": {
+                            "type": "S3",
+                            "location": "output-bucket-name",
+                            "path": "go-lambdas", 
+                            "name": "build-2010-01-01.zip",
+                            "packaging": "ZIP"
+                        }
+                    }
+                },
+                {
+                    "displayname": "Build ECR Container",
+                    "notes": "In this case, we have no buildspec_artifacts since the image is being pushed to ECR. This only sets up a single tag, latest, and note privileged mode is required to build docker images.",
+                    "definition": {
+                        "type": "&codebuild.project",
+                        "s3_bucket": "source-bucket-name",
+                        "s3_object": "object-key",
+                        "environment_variables": {
+                            "AWS_DEFAULT_REGION": "us-east-1",
+                            "AWS_ACCOUNT_ID": "123456789012",
+                            "IMAGE_REPO_NAME": "my-existing-ecr-repo"
+                        },
+                        "pre_build_commands": [
+                            "echo Logging in to Amazon ECR...",
+                            "aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+                        ],
+                        "build_commands": [
+                            "echo Build started on `date`",
+                            "docker build -t $IMAGE_REPO_NAME .",
+                            "echo Build completed on `date`",
+                            "echo Pushing the Docker image...",
+                            "docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest"
+                        ],
+                        "container_image": "aws/codebuild/standard:6.0",
+                        "privileged_mode": true
+                    }
+                }
+            ]
         }
     },
     "repos": {
