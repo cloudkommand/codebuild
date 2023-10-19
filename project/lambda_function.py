@@ -135,13 +135,14 @@ def lambda_handler(event, context):
         else:
             source = cdef.get("source")
 
+        codebuild_environment_type = "ARM_CONTAINER" if "aarch64" in container_image else "LINUX_CONTAINER"
         codebuild_spec = {
             "name": name,
             "description": description,
             "source": source,
             "artifacts": artifacts,
             "environment": {
-                "type": "LINUX_CONTAINER",
+                "type": codebuild_environment_type,
                 "image": container_image,
                 "computeType": build_container_size,
                 "imagePullCredentialsType": "CODEBUILD",
