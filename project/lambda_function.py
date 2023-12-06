@@ -410,4 +410,13 @@ IMAGE_TO_RUNTIME_MAPPING = {
         "python3.10",
         "ruby3.1",
     ],
+    "aws/codebuild/standard:7.0": [
+        "dotnet6.0",
+        "golang1.20",
+        "javacorretto17",
+        "nodejs18",
+        "php8.2",
+        "python3.11",
+        "ruby3.2",
+    ]
 }
